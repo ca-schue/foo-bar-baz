@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #define DIM 30
 
@@ -13,7 +15,8 @@
 #define MOUNTAIN_PAIR  3
 #define PLAYER_PAIR    4
 
-WINDOW * win;
+WINDOW* winArr[];
+int aArr[2] [DIM]; // 'normal' int array
 
 void wprintArrCurses(WINDOW*,int [], int, char*);
 
@@ -222,40 +225,53 @@ void formatWindows(WINDOW** win, int n) {
   wrefresh(win[1]);
 }
 
-int main(void) {
-  omp_set_num_threads(2);
-  initscr ();
-  noecho();
-  curs_set(0);
-  int aQs[DIM];
-  int aSelSor[DIM];
-  initArr(aSelSor);
-  initArr(aQs);
-  int algNum = 2;
-  WINDOW* winArr[algNum] ;
-  for(int i = 0; i < algNum; i++) {
-    winArr[i] = initWin();
-  }
-  
-  formatWindows(winArr, algNum);
-  
-  while(!pressCheck()) {  
+void* buffering(void* arg) {
+  int* aQs = (int*) &aArr[0][0]; // steal first row and use it as own start address
+  int* aSelSor = (int*) &aArr[1][0];  // same here
+  while(1) {
     wprintArrCurses(winArr[0], aQs, DIM, "Zum Sortieren TASTE drücken");
     wprintArrCurses(winArr[1], aSelSor,DIM, "Zum Sortieren TASTE drücken");
     shuffle(aQs, DIM);
     shuffle(aSelSor, DIM);
     refresh();
-    wrefresh(winArr[0]);
-    wrefresh(winArr[1]);
-    napms(1000);
+    //wrefresh(winArr[0]);
+    //wrefresh(winArr[1]);
+    napms(600);
   }
-  #pragma omp parallel sections 
+}
+
+int main(void) {
+  pthread_t thread2;
+  omp_set_num_threads(2);
+  initscr ();
+  noecho();
+  curs_set(0);
+
+  int* aQs = (int*) &aArr[0][0]; // steal first row and use it as own start address
+  int* aSelSor = (int*) &aArr[1][0];  // same here
+  initArr(aQs);
+  initArr(aSelSor);
+
+  int algNum = 2;
+
+  winArr[algNum];
+  for(int i = 0; i < algNum; i++) {
+    winArr[i] = initWin();
+  }
+
+  formatWindows(winArr, algNum);
+
+  pthread_create(&thread2, NULL, &buffering, (void*) NULL);
+
+  getch();
+  pthread_cancel(thread2);
+#pragma omp parallel sections 
   {
-    #pragma omp section 
+#pragma omp section 
     {
       startQs(winArr[0], aQs);
     }
-    #pragma omp section
+#pragma omp section
     {
       startSelSort(winArr[1], aSelSor);
     }
