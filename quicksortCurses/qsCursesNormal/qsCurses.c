@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 
 #define DIM 30
 
@@ -20,42 +21,56 @@ int**aArr; // 'normal' int array
 int algNum;
 
 void wprintArrCurses(WINDOW*,int [], int, char*);
+void wprintMsgCurses(WINDOW* , char*);
+
 
 void wselectionSort(WINDOW* win, int a[]) {
+  wprintMsgCurses(win, "Sortieren ...");
   int max = DIM-1;
-  int ins = 0;
+  int pivot = 0;
+  int i;
   do {
-    wprintArrCurses(win, a, DIM, "Sortieren...");
-    mvwaddch(win, DIM-a[ins]+1, ins+1, '#');
+    mvwaddch(win, DIM-a[pivot]+1, pivot+1, '#');
     wrefresh(win);
     napms(1000);
-    int min = ins;
-    for(int i = ins+1; i <= max; i++) {
+    int min = pivot;
+    int minAlt;
+    for(i = pivot+1; i <= DIM-1; i++) {
       if(a[i] < a[min]) {
+        minAlt = min;
         min = i;
       }
-      wprintArrCurses(win, a, DIM, "Sortieren...");
-      mvwaddch(win, DIM-a[ins]+1, ins+1, '#');
       mvwaddch(win, DIM-a[i]+1, i+1, '?');
-      if(min != ins) mvwaddch(win, DIM-a[min]+1, min+1, 'o');
+      if(min != pivot) {
+        if(minAlt == pivot) {
+          mvwaddch(win, DIM-a[minAlt]+1, minAlt+1, '#');
+        } else {
+          mvwaddch(win, DIM-a[minAlt]+1, minAlt+1, '.');
+        }
+        mvwaddch(win, DIM-a[min]+1, min+1, 'o');
+      }
       wrefresh(win);
       napms(500);
+      mvwaddch(win, DIM-a[i]+1, i+1, '.');
     }
-    if(min != ins) {
-      wprintArrCurses(win, a, DIM, "Sortieren...");
-      mvwaddch(win, DIM-a[ins]+1, ins+1, '>');
+    if(min != pivot) {
+      mvwaddch(win, DIM-a[pivot]+1, pivot+1, '>');
       mvwaddch(win, DIM-a[min]+1, min+1, '<');
       wrefresh(win);
       napms(1000);
-      int t = a[min]; a[min] = a[ins]; a[ins] = t;
-      wprintArrCurses(win, a, DIM, "Sortieren...");
-      mvwaddch(win, DIM-a[ins]+1, ins+1, '<');
+      int t = a[min]; a[min] = a[pivot]; a[pivot] = t;
+      mvwaddch(win, DIM-a[pivot]+1, min+1, ' ');
+      mvwaddch(win, DIM-a[min]+1, pivot+1, ' ');
+      mvwaddch(win, DIM-a[pivot]+1, pivot+1, '<');
       mvwaddch(win, DIM-a[min]+1, min+1, '>');
       wrefresh(win);
       napms(1000);
+      mvwaddch(win, DIM-a[min]+1, min+1, '.');
     }
-    ins++;
-  } while(ins < max);
+    mvwaddch(win, DIM-a[pivot]+1, pivot+1, '.');
+    pivot++;
+  } while(pivot < DIM);
+  wprintMsgCurses(win, "Fertig Sortiert!");
 }
 
 int wpartion(WINDOW* win, int a[], int l, int r) {
@@ -143,6 +158,32 @@ void printArr(int a[], int n) {
   printf("\n");
 }
 
+void wprintMsgCurses(WINDOW* win, char* msg) {
+  box(win,ACS_VLINE,ACS_HLINE);
+  int p = strlen(msg);
+  mvwaddstr(win,DIM+1, (DIM+1)/2-(p-1)/2, msg);
+  wrefresh(win);
+}
+
+void wprintArrCursesNoMsg(WINDOW * win, int a[], int n) {
+  wclear(win);
+  int j, i;
+  for(j = n; j > 0; j--) {
+    for(i = 0; i < n; i++) {
+      if(a[i] == j) {
+        mvwaddch(win, n-j+1, i+1,'.');
+      } else {
+        mvwaddch(win, n-j+1, i+1,' ');
+      }
+    }
+    mvwaddch(win, n-j+1, i+1, '\n');
+  }
+  box(win,ACS_VLINE,ACS_HLINE);
+  wrefresh(win);
+}
+
+
+
 void wprintArrCurses(WINDOW * win, int a[], int n, char* msg) {
   wclear(win);
   int j, i;
@@ -198,14 +239,7 @@ void startQs(WINDOW* winQs, int a[]) {
 }
 
 void startSelSort(WINDOW* winSelSort, int a[]) {
-  wprintArrCurses(winSelSort, a, DIM, "Zum Sortieren TASTE drücken");
-  refresh();
-  wrefresh(winSelSort);
-  wmove(winSelSort, 0,0);
-  //getch();
   wselectionSort(winSelSort, a);
-  wprintArrCurses(winSelSort, a, DIM, "Fertig sortiert!");
-  wrefresh(winSelSort);
   getch();
 }
 
@@ -235,8 +269,10 @@ int getAlgNum() {
 void* buffering(void* arg) {
   while(1) {
     for(int i = 0; i<algNum; i++) {
-      wprintArrCurses(winArr[i], aArr[i], DIM, "Zum Sortieren TASTE drücken");
       shuffle(aArr[i], DIM);
+      wprintArrCursesNoMsg(winArr[i], aArr[i], DIM);
+      wprintMsgCurses(winArr[i], "Zum Sortieren TASTE drücken");
+      wrefresh(winArr[i]);
     }
     refresh();
     napms(600);
@@ -253,19 +289,14 @@ int main(void) {
   initscr ();
   noecho();
   curs_set(0);
-
   for(int i = 0; i<algNum; i++) {
   aArr[i] = malloc(sizeof(int)*DIM);
   initArr(aArr[i]);
   }
-
   for(int i = 0; i < algNum; i++) {
     winArr[i] = initWin();
   }
-
-
   formatWindows(winArr, algNum);
-
 
   pthread_create(&thread2, NULL, &buffering, (void*) NULL);
 
@@ -274,7 +305,7 @@ int main(void) {
 #pragma omp parallel for 
   for(int i = 0; i<algNum; i++)
   {
-    startQs(winArr[i], aArr[i]);
+    startSelSort(winArr[i], aArr[i]);
   }
   endwin();
 }
