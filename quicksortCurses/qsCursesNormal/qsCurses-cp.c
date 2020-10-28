@@ -26,7 +26,6 @@ void wresetMsgTitleCurses(WINDOW*);
 void wprintTitleCurses(WINDOW*, char*);
 
 void wselectionSort(WINDOW* win, int a[]) {
-  wprintMsgCurses(win, "Sortieren ...");
   int max = DIM-1;
   int pivot = 0;
   int i;
@@ -71,25 +70,77 @@ void wselectionSort(WINDOW* win, int a[]) {
     mvwaddch(win, DIM-a[pivot]+1, pivot+1, '.');
     pivot++;
   } while(pivot < DIM);
-  wprintMsgCurses(win, "Fertig Sortiert!");
 }
 
 int wpartion(WINDOW* win, int a[], int l, int r) {
   int i = l;
   int j = r;
   int v = a[r];
+  mvwaddch(win, DIM-a[r]+1, r+1, '#');
+  wrefresh(win);
+  napms(1000);
   while(i<j) {
     while(i<r && a[i] < v) {
+      mvwaddch(win, DIM-a[i]+1, i+1, '?');
+      wrefresh(win);
+      napms(500);
+      mvwaddch(win, DIM-a[i]+1, i+1, '.');
+      wrefresh(win);
       i++;
     }
+    if(a[i] >= v && i != r) {
+      mvwaddch(win, DIM-a[i]+1, i+1, 'o');
+      wrefresh(win);
+      napms(500);
+    }
     while(j>l && a[j] >= v) {
+      if(j != r) {
+        mvwaddch(win, DIM-a[j]+1, j+1, '?');
+        wrefresh(win);
+        napms(500);
+        mvwaddch(win, DIM-a[j]+1, j+1, '.');
+        wrefresh(win);
+      }
       j--;
     }
-    if(i<j) {
-      int t = a[i]; a[i] = a[j]; a[j] = t;
+    if(a[j] < v && j != r) {
+      mvwaddch(win, DIM-a[j]+1, j+1, 'o');
+      wrefresh(win);
     }
+    napms(500);
+    if(i<j) {
+      mvwaddch(win, DIM-a[i]+1, i+1, '>');
+      mvwaddch(win, DIM-a[j]+1, j+1, '<');
+      wrefresh(win);
+      napms(1000);
+      int t = a[i]; a[i] = a[j]; a[j] = t;
+      mvwaddch(win, DIM-a[i]+1, j+1, ' ');
+      mvwaddch(win, DIM-a[j]+1, i+1, ' ');
+      mvwaddch(win, DIM-a[i]+1, i+1, '<');
+      mvwaddch(win, DIM-a[j]+1, j+1, '>');
+      wrefresh(win);
+      napms(1000);
+      mvwaddch(win, DIM-a[j]+1, j+1, '.');
+      mvwaddch(win, DIM-a[i]+1, i+1, '.');
+    } else {
+    mvwaddch(win, DIM-a[j]+1, j+1, '.');
+    mvwaddch(win, DIM-a[i]+1, i+1, '.');
+    }
+    wrefresh(win);
     if(a[i] > a[r]){
+      mvwaddch(win, DIM-a[i]+1, i+1, '>');
+      mvwaddch(win, DIM-a[r]+1, r+1, '<');
+      wrefresh(win);
+      napms(1000);
       int t = a[i]; a[i] = a[r]; a[r] = t;
+      mvwaddch(win, DIM-a[i]+1, r+1, ' ');
+      mvwaddch(win, DIM-a[r]+1, i+1, ' ');
+      mvwaddch(win, DIM-a[i]+1, i+1, '<');
+      mvwaddch(win, DIM-a[r]+1, r+1, '>');
+      wrefresh(win);
+      napms(1000);
+      mvwaddch(win, DIM-a[r]+1, r+1, '.');
+      mvwaddch(win, DIM-a[i]+1, i+1, '.');
     }
   }
   return i;
@@ -124,6 +175,18 @@ void wprintTitleCurses(WINDOW* win, char* msg) {
   int p = strlen(msg);
   mvwaddstr(win,0, (DIM+1)/2-(p-1)/2, msg);
   wrefresh(win);
+}
+
+void wdelPrompt(WINDOW* win, char* msg) {
+  int t = strlen(msg);
+  for(int i = 0; i < t; i++) {
+    mvwdelch(win, (LINES/2 + DIM/2) + DIM/4 - 2, COLS/2 - t/2);
+  }
+}
+
+void wprintPrompt(WINDOW* win, char* msg) {
+  int t = strlen(msg);
+  mvwaddstr(win, (LINES/2 + DIM/2) + DIM/4 - 2, COLS/2 - t/2,msg);
 }
 
 void wprintMsgCurses(WINDOW* win, char* msg) {
@@ -193,18 +256,17 @@ WINDOW* initWin() {
 }
 
 void startQs(WINDOW* winQs, int a[]) {
-  wprintMsgCurses(winQs, "Sortieren ...");
+  wprintMsgCurses(winQs, " Sortieren ... ");
   wquicksort(winQs, a, 0, DIM-1);
-  wprintArrCurses(winQs, a, DIM, "Fertig sortiert!");
-  wprintMsgCurses(winQs,  "Fertig sortiert!");
+  wprintMsgCurses(winQs,  " Fertig sortiert! ");
   wrefresh(winQs);
   getch();
 }
 
 void startSelSort(WINDOW* winSelSort, int a[]) {
-  wprintMsgCurses(winSelSort, "Sortieren ...");
+  wprintMsgCurses(winSelSort, " Sortieren ... ");
   wselectionSort(winSelSort, a);
-  wprintMsgCurses(winSelSort, "Fertig Sortiert!");
+  wprintMsgCurses(winSelSort, " Fertig Sortiert! ");
   getch();
 }
 
@@ -237,7 +299,7 @@ void* buffering(void* arg) {
       shuffle(aArr[i], DIM);
       wprintArrCursesNoMsg(winArr[i], aArr[i], DIM);
       wresetMsgTitleCurses(winArr[i]);
-      wprintMsgCurses(winArr[i], "Zum Sortieren TASTE drücken");
+      wprintMsgCurses(winArr[i], " Mischen ... ");
       if(i == 0) {
         wprintTitleCurses(winArr[i], " Quicksort ");
       } else {
@@ -245,8 +307,14 @@ void* buffering(void* arg) {
       }
       wrefresh(winArr[i]);
     }
+    wprintPrompt(stdscr, "Zum Sortieren TASTE drücken!");
     refresh();
-    napms(600);
+    napms(700);
+  
+    wdelPrompt(stdscr, "Zum Sortieren TASTE drücken!");
+    refresh();
+    napms(400);
+
   }
 }
 
@@ -274,14 +342,18 @@ int main(void) {
     winArr[i] = initWin();
   }
   formatWindows(winArr, algNum);
-
+  
   pthread_create(&thread2, NULL, &buffering, (void*) NULL);
 
   getch();
   pthread_cancel(thread2);
+  wdelPrompt(stdscr, "Zum Sortieren TASTE drücken!");
+  refresh();
+
 #pragma omp parallel for 
   for(int i = 0; i<algNum; i++)
   {
+    wprintPrompt(stdscr, "      ");
     (*sortArr[i])(winArr[i], aArr[i]);
   }
   endwin();
