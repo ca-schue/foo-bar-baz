@@ -10,7 +10,7 @@
 
 # Please add all targets in ./bin here
 
-TARGETS += $(BIN_DIR)/SpringerSuche
+TARGETS += $(BIN_DIR)/knightSearch
 
 #################################################
 # There is no need to edit below this line
