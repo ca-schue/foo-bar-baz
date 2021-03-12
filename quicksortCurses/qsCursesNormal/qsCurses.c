@@ -25,7 +25,7 @@ void wresetMsgTitleCurses(WINDOW*);
 void wprintTitleCurses(WINDOW*, char*);
 
 void wselectionSort(WINDOW* win, int a[]) {
-  int max = DIM-1;
+  // int max = DIM-1;
   int pivot = 0;
   int i;
   do {
@@ -320,9 +320,12 @@ void* buffering(void* arg) {
 int main(void) {
   setAlgNum(2);
 
+  // ncurses init
   initscr ();
   echo();
   nocbreak();
+
+  // Prompt #1
   char* initmsg = "Zahlen sortieren von 0 - ";
   char inp [3];
   mvwaddstr(stdscr, LINES/2, COLS/2 - strlen(initmsg)/2, initmsg);
@@ -334,11 +337,15 @@ int main(void) {
   aArr = malloc(sizeof(int*)*algNum);
   winArr = malloc(sizeof(WINDOW*)*algNum);
 
+  // function var
   void (*sortArr[algNum]) (WINDOW*, int*);
 
+  // left: Quicksort
   sortArr[0] = startQs;
+  // right: Selection Sort
   sortArr[1] = startSelSort;
 
+  // multithreaded via OpenMP
   pthread_t thread2;
   omp_set_num_threads(algNum);
   curs_set(0);
@@ -355,6 +362,8 @@ int main(void) {
 
   getch();
   pthread_cancel(thread2);
+  
+  // Prompt #2
   wdelPrompt(stdscr, "Zum Sortieren TASTE drücken!");
   refresh();
 
