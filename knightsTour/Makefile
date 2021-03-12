@@ -10,7 +10,7 @@
 
 # Please add all targets in ./bin here
 
-TARGETS += $(BIN_DIR)/knightSearch
+TARGETS += $(BIN_DIR)/knightsTour
 
 #################################################
 # There is no need to edit below this line
