@@ -10,14 +10,14 @@
 #
 
 # Please add targets in ./bin here
-TARGETS += $(BIN_DIR)/qsCurses
+TARGETS += $(BIN_DIR)/wsortingDetailed
  
 #################################################
 # There is no need to edit below this line
 #################################################
 
 # Generate debugging symbols?
-CFLAGS = -g -Wall -fopenmp
+CFLAGS = -g -Wall
 # set appropriate library for curses
 ifeq ($(MSYSTEM),MINGW32)
     LDLIBS = -lpdcurses
